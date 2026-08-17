@@ -455,24 +455,61 @@ function move_wishlist(int $id, string $direction): void {
     $stmt->execute([$a['sort_order'], $b['id']]);
 }
 
-/* ---------- Backup / restore ---------- */
+/* ---------- Backup / restore (portable .sql dump) ---------- */
 
-function export_backup_array(): array {
-    $pdo = get_pdo();
-    $users = $pdo->query('SELECT id, name, email, role, username, password FROM users')->fetchAll();
-    $transactions = $pdo->query('SELECT * FROM transactions')->fetchAll();
-    foreach ($transactions as &$t) {
-        $t['date'] = $t['txn_date'];
-        unset($t['txn_date']);
+const BACKUP_TABLES = [
+    'users' => ['id', 'name', 'email', 'role', 'username', 'password', 'created_at'],
+    'categories' => ['id', 'name', 'color', 'sort_order', 'created_at'],
+    'purses' => ['id', 'name', 'balance', 'created_at'],
+    'settings' => ['id', 'currency', 'monthly_expense_threshold', 'low_purse_threshold', 'alert_email', 'smtp_host', 'smtp_user', 'smtp_pass', 'smtp_port', 'smtp_secure', 'smtp_from_email', 'smtp_from_name', 'threshold_emails_enabled', 'theme', 'quotes'],
+    'transactions' => ['id', 'type', 'amount', 'quantity', 'is_loan', 'category_id', 'purse_id', 'user_id', 'note', 'txn_date', 'created_at'],
+    'budgets' => ['category_id', 'amount'],
+    'wishlist' => ['id', 'name', 'amount', 'purchased', 'sort_order', 'date_added'],
+    'notifications' => ['id', 'kind', 'ref_key', 'sent_on', 'created_at'],
+];
+
+function sql_dump_value(PDO $pdo, $value): string {
+    if ($value === null) {
+        return 'NULL';
     }
-    unset($t);
-    return [
-        'users' => $users,
-        'categories' => all_categories(),
-        'purses' => all_purses(),
-        'transactions' => $transactions,
-        'budgets' => all_budgets(),
-        'wishlist' => all_wishlist(),
-        'settings' => get_settings(),
-    ];
+    if (is_int($value) || is_float($value)) {
+        return (string)$value;
+    }
+    return $pdo->quote((string)$value);
+}
+
+function sql_dump_table(PDO $pdo, string $table, array $columns): string {
+    $rows = $pdo->query('SELECT * FROM `' . $table . '`')->fetchAll();
+    $out = "-- Table: {$table}\nTRUNCATE TABLE `{$table}`;\n";
+    if ($rows) {
+        $columnList = '`' . implode('`, `', $columns) . '`';
+        $valueLines = array_map(
+            fn($row) => '(' . implode(', ', array_map(fn($c) => sql_dump_value($pdo, $row[$c]), $columns)) . ')',
+            $rows
+        );
+        $out .= "INSERT INTO `{$table}` ({$columnList}) VALUES\n" . implode(",\n", $valueLines) . ";\n";
+        if (in_array('id', $columns, true)) {
+            $maxId = (int)max(array_column($rows, 'id'));
+            $out .= "ALTER TABLE `{$table}` AUTO_INCREMENT = " . ($maxId + 1) . ";\n";
+        }
+    }
+    return $out . "\n";
+}
+
+function export_backup_sql(): string {
+    $pdo = get_pdo();
+    $sql = "-- PalmPocket SQL backup\n-- Generated " . date('c') . "\n\nSET FOREIGN_KEY_CHECKS = 0;\n\n";
+    foreach (BACKUP_TABLES as $table => $columns) {
+        $sql .= sql_dump_table($pdo, $table, $columns);
+    }
+    $sql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
+    return $sql;
+}
+
+function import_backup_sql(string $sql): void {
+    if (trim($sql) === '') {
+        throw new InvalidArgumentException('The uploaded file is empty.');
+    }
+    $pdo = get_multi_statement_pdo();
+    $pdo->exec($sql);
 }

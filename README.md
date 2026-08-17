@@ -16,7 +16,7 @@ redesigned, responsive UI with light and dark themes.
 - Monthly/weekly reports with a category chart and CSV export (full list or summary)
 - Wishlist with manual priority ordering and a purchased/pending split
 - Multi-user support with per-user login, password changes, and role labels
-- JSON backup export/import (compatible with the original flat-file format)
+- Portable `.sql` backup export/restore, importable via `mysql`/phpMyAdmin too
 - Native authenticated SMTP email (no Composer/PHPMailer needed) with a test-email button
 - Optional daily cron job for monthly-expense and low-purse-balance threshold alerts
 - Mobile-first, responsive UI: bottom nav + floating action button on small screens,
@@ -38,10 +38,9 @@ redesigned, responsive UI with light and dark themes.
 4. Create your first admin account. Default categories and purses are added for you.
 5. Log in and go.
 
-Migrating from an older flat-file export, or restoring a previous PalmPocket backup? The
-installer doesn't handle that (it's a one-time concern, not part of ongoing setup) — instead,
-log in and use **Settings &rarr; Backup &amp; Restore** to upload the JSON file. That accepts
-both PalmPocket's own backup export and the original flat-file `data/budget.json` format.
+Restoring a previous PalmPocket backup? The installer doesn't handle that (it's not part of
+ongoing setup) — instead, log in and use **Settings &rarr; Backup &amp; Restore** to upload
+the `.sql` file.
 
 Database credentials are written to `includes/config.local.php`, which is git-ignored and
 never committed. To reconfigure from scratch, delete that file and revisit the app.
@@ -52,7 +51,7 @@ never committed. To reconfigure from scratch, delete that file and revisit the a
 index.php            Front controller / router, session + POST handling
 setup.php             First-run installer wizard
 db/schema.sql          MySQL schema (InnoDB, FKs, indexes)
-includes/              db.php, auth.php, repo.php (data access), mailer.php, functions.php, importer.php
+includes/              db.php, auth.php, repo.php (data access), mailer.php, functions.php
 pages/                  One template per page (dashboard, add, edit, transactions, reports, wishlist, settings, login)
 assets/css, assets/js  Responsive stylesheet and small progressive-enhancement script
 cron_thresholds.php     Daily cron script for threshold email alerts

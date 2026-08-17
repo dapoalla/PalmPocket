@@ -38,6 +38,29 @@ function get_pdo(): PDO {
 }
 
 /**
+ * A dedicated connection with multi-statement execution enabled, used only
+ * to replay an uploaded .sql backup file (a single exec() runs every
+ * statement in it, letting the MySQL parser handle semicolons inside
+ * quoted values correctly instead of us splitting the text ourselves).
+ */
+function get_multi_statement_pdo(): PDO {
+    $config = db_config();
+    if (!$config) {
+        throw new RuntimeException('Application is not configured yet.');
+    }
+    $dsn = sprintf(
+        'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+        $config['host'],
+        $config['port'],
+        $config['name']
+    );
+    return new PDO($dsn, $config['user'], $config['pass'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+    ]);
+}
+
+/**
  * Connect without selecting a database, used by the installer to test
  * credentials and create the target database if it does not exist yet.
  */

@@ -38,9 +38,9 @@ $flash = $_SESSION['flash'] ?? '';
 unset($_SESSION['flash']);
 
 if (($_GET['action'] ?? '') === 'backup' && $isLoggedIn) {
-    header('Content-Type: application/json');
-    header('Content-Disposition: attachment; filename="palmpocket-backup-' . date('Y-m-d-His') . '.json"');
-    echo json_encode(export_backup_array(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    header('Content-Type: application/sql');
+    header('Content-Disposition: attachment; filename="palmpocket-backup-' . date('Y-m-d-His') . '.sql"');
+    echo export_backup_sql();
     exit;
 }
 
@@ -188,14 +188,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($action === 'restore_backup') {
             if (isset($_FILES['backup_file']) && is_uploaded_file($_FILES['backup_file']['tmp_name'])) {
-                $restored = json_decode((string)file_get_contents($_FILES['backup_file']['tmp_name']), true);
-                if (is_array($restored) && isset($restored['categories'], $restored['transactions'], $restored['settings'])) {
-                    require __DIR__ . '/includes/importer.php';
-                    import_legacy_json($pdo, $restored);
-                    flash('Backup restored.');
-                } else {
-                    flash('Invalid backup file.');
-                }
+                import_backup_sql((string)file_get_contents($_FILES['backup_file']['tmp_name']));
+                flash('Backup restored.');
             }
         }
 

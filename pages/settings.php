@@ -145,12 +145,13 @@ declare(strict_types=1);
 
 <div class="card full">
 <h2>Backup &amp; restore</h2>
-<div class="actions"><a class="btn ghost" href="?action=backup">Download backup</a></div>
+<p class="muted">Backups are plain <code>.sql</code> files &mdash; portable, and importable via <code>mysql</code> or phpMyAdmin too, not just this app.</p>
+<div class="actions"><a class="btn ghost" href="?action=backup">Download SQL backup</a></div>
 <form method="post" enctype="multipart/form-data" style="margin-top:14px" onsubmit="return confirm('Restore will replace current data. Continue?')">
 <input type="hidden" name="action" value="restore_backup">
 <?= csrf_field() ?>
-<label>Restore JSON backup</label>
-<input name="backup_file" type="file" accept="application/json,.json" required>
+<label>Restore SQL backup</label>
+<input name="backup_file" type="file" accept=".sql,application/sql,text/plain" required>
 <button class="btn red" type="submit">Restore backup</button>
 </form>
 </div>
